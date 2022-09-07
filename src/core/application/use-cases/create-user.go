@@ -10,6 +10,7 @@ import (
 	_dtos "golang-gin/src/core/application/dtos"
 	_common "golang-gin/src/core/domains/common"
 	_user "golang-gin/src/core/domains/user"
+	_redis "golang-gin/src/infra/redis"
 )
 
 type (
@@ -19,13 +20,15 @@ type (
 	}
 	CreateUserRequest struct {
 		CreateUser
-		Repository _user.IUserRepository
+		Repository  _user.IUserRepository
+		RedisClient _redis.IRedisClient
 	}
 )
 
-func NewCreateUser(repository _user.IUserRepository) (CreateUser, error) {
+func NewCreateUser(repository _user.IUserRepository, redisClient _redis.IRedisClient) (CreateUser, error) {
 	var uc CreateUser = &CreateUserRequest{
-		Repository: repository,
+		Repository:  repository,
+		RedisClient: redisClient,
 	}
 
 	return uc, nil
@@ -63,6 +66,10 @@ func (uc *CreateUserRequest) Execute(ctx context.Context, createUserDTO _dtos.Cr
 	if err != nil {
 		return response, _common.DefaultDomainError(err.Error())
 	}
+
+	go func(ctx context.Context) {
+		_ = uc.RedisClient.DelData(ctx, _user.REDIS_LIST_ALL_USERS_KEY)
+	}(ctx)
 
 	return uc.toResponse(user), nil
 }

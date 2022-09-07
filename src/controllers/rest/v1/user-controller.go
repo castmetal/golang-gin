@@ -40,8 +40,9 @@ func CreateUserControllerV1(c *gin.Context) {
 	}
 
 	userRepository := _repositories.NewUserRepositoryFromConfig()
+	redisClient := _redis.NewRedisClient()
 
-	createUser, err := _use_cases.NewCreateUser(userRepository)
+	createUser, err := _use_cases.NewCreateUser(userRepository, redisClient)
 	if err != nil {
 		_common.HandleHttpErrors(err, c)
 		return
